@@ -15,6 +15,7 @@ An agentic chatbot backend that analyzes UAV flight logs and answers questions u
 
 ---
 ## Project Structure
+```
 uav-log-chatbot/
 ├── backend/
 │ ├── main.py # FastAPI backend
@@ -25,6 +26,7 @@ uav-log-chatbot/
 │ └── uploaded_logs/ # Temporarily stored flight logs
 ├── README.md
 └── UAVLogViewer/ # (Optional) Original viewer frontend (unchanged)
+```
 
 ## Setup Instructions
 
