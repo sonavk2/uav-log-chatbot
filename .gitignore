@@ -1,26 +1,13 @@
-# 1) Make sure .gitignore excludes junk
-cat > .gitignore <<'EOF'
-# OS
-.DS_Store
-
-# Python
 __pycache__/
-*.py[cod]
-*.egg-info/
-
-# FastAPI uploads / logs
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
 backend/uploaded_logs/
-*.bin
 *.log
-
-# Node / Vite
+*.bin
+node_modules/
 frontend/node_modules/
-frontend/.vite/
-dist/
-*.local
-
-# Env & secrets
+frontend/dist/
 .env
-.env.*
-EOF
-git add .gitignore
+.env.local
