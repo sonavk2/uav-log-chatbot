@@ -9,10 +9,12 @@ def parse_log(file_path: str) -> Dict:
         "raw_messages": [],
         "flight_time_sec": 0.0,
         "gps_events": []  
+        "gps_events": []   # keep if you want
     }
 
     start_time = last_time = None
 
+    # Collect times where GPS is "bad"
     gps_bad_times: List[float] = []
 
     while True:
@@ -85,10 +87,20 @@ def parse_log(file_path: str) -> Dict:
     if gps_bad_times:
         gps_bad_times.sort()
         GAP = 3.0  
+    # Duration
+    duration = round(last_time - start_time, 2) if (start_time is not None and last_time is not None) else 0.0
+    data["flight_time_sec"] = duration
+
+    # Segment GPS bad windows into intervals
+    anomalies: List[Dict] = []
+    if gps_bad_times:
+        gps_bad_times.sort()
+        GAP = 3.0  # seconds — split if gaps are larger than this
         seg_start = gps_bad_times[0]
         prev = gps_bad_times[0]
         for t in gps_bad_times[1:]:
             if (t - prev) > GAP:
+                # close previous segment
                 anomalies.append({ "t": round(seg_start, 2), "type": "gps_dropout" })
                 anomalies.append({ "t": round(prev, 2),      "type": "gps_recovered" })
                 seg_start = t
@@ -96,11 +108,17 @@ def parse_log(file_path: str) -> Dict:
         anomalies.append({ "t": round(seg_start, 2), "type": "gps_dropout" })
         anomalies.append({ "t": round(prev, 2),      "type": "gps_recovered" })
 
+        # close final segment
+        anomalies.append({ "t": round(seg_start, 2), "type": "gps_dropout" })
+        anomalies.append({ "t": round(prev, 2),      "type": "gps_recovered" })
+
+    # Optional quick KPIs (add real ones later if you like)
     kpis = {
         "flight_time_s": round(duration),
         "messages": len(data["raw_messages"])
     }
 
+    # Attach UI-friendly fields (keep the old ones too)
     data["meta"] = { "duration": duration }
     data["kpis"] = kpis
     data["anomalies"] = anomalies

@@ -3,7 +3,7 @@ import pickle
 import faiss
 import numpy as np
 
-VECTOR_DIR = "backend/vector_store_data"
+VECTOR_DIR = "vector_store_data"
 os.makedirs(VECTOR_DIR, exist_ok=True)
 
 def save_vector_index(session_id: str, chunks: list[str], embeddings: np.ndarray):

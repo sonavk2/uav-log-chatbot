@@ -5,7 +5,7 @@ from parser import parse_log
 from llm_utils import ask_llm
 import shutil, os, math
 
-UPLOAD_DIR = "backend/uploaded_logs"
+UPLOAD_DIR = "uploaded_logs"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 telemetry_cache = {}
 

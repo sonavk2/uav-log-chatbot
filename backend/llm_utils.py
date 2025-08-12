@@ -4,6 +4,8 @@ from vector_store import search_chunks
 from sentence_transformers import SentenceTransformer
 import os
 
+
+# NEVER hardcode keys
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -13,6 +15,8 @@ def _format_anomalies(anoms):
     if not anoms:
         return "None detected."
     lines = []
+
+    # optional: collapse dropout/recovered pairs into ranges
     stack = None
     for a in sorted(anoms, key=lambda x: float(x.get("t", 0))):
         t = float(a.get("t", 0))
@@ -30,6 +34,7 @@ def _format_anomalies(anoms):
 
 def ask_llm(question, session_id, telemetry_data):
     # 1) Telemetry → flat text 
+    # 1) Telemetry → flat text (truncate to keep prompt small)
     chunks = flatten_telemetry(telemetry_data)
     flat_preview = "\n".join(chunks[:30])
 
@@ -70,6 +75,7 @@ User Question:
 
     resp = client.chat.completions.create(
         model="gpt-4o-mini",  
+        model="gpt-4o-mini",  # or your preferred model
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt.strip()},
