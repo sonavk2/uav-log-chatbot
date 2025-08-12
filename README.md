@@ -41,7 +41,7 @@ uav-log-chatbot/
 
 ## Setup Instructions
 
-###Backend Setup (FastAPI)
+**Backend Setup (FastAPI)**
 1. Clone this repo
 git clone https://github.com/sonavk2/uav-log-chatbot.git
 cd uav-log-chatbot/backend
@@ -65,7 +65,7 @@ curl -X POST http://127.0.0.1:8000/ask \
       }'
 
 
-###Frontend Setup (React + Vite)
+**Frontend Setup (React + Vite)**
 1. Open a new terminal
 cd ../frontend
 
