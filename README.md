@@ -1,6 +1,6 @@
 # UAV Log Chatbot
 
-An agentic chatbot backend that analyzes UAV flight logs and answers questions using LLMs. This project extends the functionality of the [UAVLogViewer](https://github.com/ArduPilot/UAVLogViewer) by integrating a Python backend that parses `.bin` log files, detects anomalies, and allows users to chat with the system about their flight data.
+An agentic chatbot backend that analyzes UAV flight logs and answers questions using LLMs. This project integrates a Python backend that parses `.bin` log files, detects anomalies, and allows users to chat with the system about their flight data.
 
 ## Features
 
@@ -25,7 +25,7 @@ uav-log-chatbot/
 │ ├── requirements.txt # Python dependencies
 │ └── uploaded_logs/ # Temporarily stored flight logs
 ├── README.md
-└── UAVLogViewer/ # (Optional) Original viewer frontend (unchanged)
+└── UAVLogViewer/ # frontend 
 ```
 
 ## Setup Instructions
