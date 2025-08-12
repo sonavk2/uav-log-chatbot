@@ -1,3 +1,4 @@
+# parser.py
 from typing import Dict, List
 from pymavlink import mavutil
 
@@ -7,15 +8,19 @@ def parse_log(file_path: str) -> Dict:
     data: Dict = {
         "raw_messages": [],
         "flight_time_sec": 0.0,
-        "gps_events": []
+        "gps_events": []  
     }
 
     start_time = last_time = None
+
+    gps_bad_times: List[float] = []
 
     while True:
         msg = mav.recv_match(blocking=False)
         if msg is None:
             break
+
+        # Extract dict + timestamp
         t = None
         if hasattr(msg, "to_dict"):
             try:
@@ -30,17 +35,15 @@ def parse_log(file_path: str) -> Dict:
 
         if t is None:
             t = getattr(msg, "_timestamp", None)
-        
         if t is None:
             continue
 
         if start_time is None:
             start_time = t
-
         last_time = t
 
         mtype = msg.get_type()
-        
+
         def clean_fields(fields):
             cleaned = {}
             for k, v in fields.items():
@@ -53,14 +56,55 @@ def parse_log(file_path: str) -> Dict:
                         cleaned[k] = None
             return cleaned
 
+        cd = clean_fields(d)
+
+        # Track GPS loss candidates
+        if mtype in ("GPS", "GPS2", "GPS_RAW_INT", "GPS2_RAW"):
+            # tolerate different field names across firmwares
+            nsats = cd.get("NSats") or cd.get("satellites_visible")
+            fix   = cd.get("Status") or cd.get("FixType") or cd.get("fix_type")
+            try:
+                fix = int(fix) if fix is not None else None
+            except Exception:
+                fix = None
+
+            # "Bad" when very few sats OR fix < 2 (no fix)
+            if (nsats is not None and float(nsats) < 4) or (fix is not None and fix < 2):
+                gps_bad_times.append(float(t))
+
         data["raw_messages"].append({
             "type": mtype,
-            "time": t,
-            "fields": clean_fields(d)
+            "time": float(t),
+            "fields": cd
         })
 
+    duration = round(last_time - start_time, 2) if (start_time is not None and last_time is not None) else 0.0
+    data["flight_time_sec"] = duration
 
-    data["flight_time_sec"] = round(last_time - start_time, 2) if (start_time is not None and last_time is not None) else 0.0
+    anomalies: List[Dict] = []
+    if gps_bad_times:
+        gps_bad_times.sort()
+        GAP = 3.0  
+        seg_start = gps_bad_times[0]
+        prev = gps_bad_times[0]
+        for t in gps_bad_times[1:]:
+            if (t - prev) > GAP:
+                anomalies.append({ "t": round(seg_start, 2), "type": "gps_dropout" })
+                anomalies.append({ "t": round(prev, 2),      "type": "gps_recovered" })
+                seg_start = t
+            prev = t
+        anomalies.append({ "t": round(seg_start, 2), "type": "gps_dropout" })
+        anomalies.append({ "t": round(prev, 2),      "type": "gps_recovered" })
+
+    kpis = {
+        "flight_time_s": round(duration),
+        "messages": len(data["raw_messages"])
+    }
+
+    data["meta"] = { "duration": duration }
+    data["kpis"] = kpis
+    data["anomalies"] = anomalies
+
     return data
 
 def flatten_telemetry(data: Dict, prefix="") -> List[str]:
@@ -75,23 +119,3 @@ def flatten_telemetry(data: Dict, prefix="") -> List[str]:
         else:
             out.append(f"{label}: {v}")
     return out
-
-
-def detect_anomalies(parsed_data):
-    anomalies = {}
-    gps_loss_events = []
-
-    for msg in parsed_data["raw_messages"]:
-        if msg["type"] == "GPS":
-            fields = msg["fields"]
-            nsats = fields.get("NSats")
-            fix = fields.get("Status") or fields.get("FixType")
-            if (nsats is not None and nsats < 4) or (fix is not None and int(fix) < 2):
-                gps_loss_events.append(msg["time"])
-
-    if gps_loss_events:
-        start = round(gps_loss_events[0], 2)
-        end = round(gps_loss_events[-1], 2)
-        anomalies["gps"] = f"Possible GPS loss between {start}s and {end}s (low satellite count or no fix)."
-
-    return anomalies
