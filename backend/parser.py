@@ -9,12 +9,11 @@ def parse_log(file_path: str) -> Dict:
         "raw_messages": [],
         "flight_time_sec": 0.0,
         "gps_events": []  
-        "gps_events": []   # keep if you want
+        "gps_events": []   
     }
 
     start_time = last_time = None
 
-    # Collect times where GPS is "bad"
     gps_bad_times: List[float] = []
 
     while True:
@@ -62,7 +61,6 @@ def parse_log(file_path: str) -> Dict:
 
         # Track GPS loss candidates
         if mtype in ("GPS", "GPS2", "GPS_RAW_INT", "GPS2_RAW"):
-            # tolerate different field names across firmwares
             nsats = cd.get("NSats") or cd.get("satellites_visible")
             fix   = cd.get("Status") or cd.get("FixType") or cd.get("fix_type")
             try:
@@ -70,7 +68,6 @@ def parse_log(file_path: str) -> Dict:
             except Exception:
                 fix = None
 
-            # "Bad" when very few sats OR fix < 2 (no fix)
             if (nsats is not None and float(nsats) < 4) or (fix is not None and fix < 2):
                 gps_bad_times.append(float(t))
 
@@ -100,7 +97,6 @@ def parse_log(file_path: str) -> Dict:
         prev = gps_bad_times[0]
         for t in gps_bad_times[1:]:
             if (t - prev) > GAP:
-                # close previous segment
                 anomalies.append({ "t": round(seg_start, 2), "type": "gps_dropout" })
                 anomalies.append({ "t": round(prev, 2),      "type": "gps_recovered" })
                 seg_start = t
@@ -112,13 +108,11 @@ def parse_log(file_path: str) -> Dict:
         anomalies.append({ "t": round(seg_start, 2), "type": "gps_dropout" })
         anomalies.append({ "t": round(prev, 2),      "type": "gps_recovered" })
 
-    # Optional quick KPIs (add real ones later if you like)
     kpis = {
         "flight_time_s": round(duration),
         "messages": len(data["raw_messages"])
     }
 
-    # Attach UI-friendly fields (keep the old ones too)
     data["meta"] = { "duration": duration }
     data["kpis"] = kpis
     data["anomalies"] = anomalies
