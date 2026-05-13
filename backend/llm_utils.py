@@ -1,13 +1,23 @@
 from openai import OpenAI
 from parser import flatten_telemetry
-from vector_store import search_chunks
+from vector_store import search_chunks, save_vector_index
 from sentence_transformers import SentenceTransformer
+import numpy as np
 import os
 
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
+
+
+def index_session(session_id: str, telemetry_data: dict) -> None:
+    """Build and persist a FAISS index of the telemetry chunks for this session."""
+    chunks = flatten_telemetry(telemetry_data)
+    if not chunks:
+        return
+    embeddings = np.array(model.encode(chunks))
+    save_vector_index(session_id, chunks, embeddings)
 
 def _format_anomalies(anoms):
     """anoms: list like [{'t': 73.8, 'type': 'gps_dropout'}, ...]"""
@@ -70,8 +80,7 @@ User Question:
     )
 
     resp = client.chat.completions.create(
-        model="gpt-4o-mini",  
-        model="gpt-4o-mini", 
+        model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt.strip()},

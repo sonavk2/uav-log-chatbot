@@ -8,8 +8,7 @@ def parse_log(file_path: str) -> Dict:
     data: Dict = {
         "raw_messages": [],
         "flight_time_sec": 0.0,
-        "gps_events": []  
-        "gps_events": []   
+        "gps_events": [],
     }
 
     start_time = last_time = None
@@ -80,18 +79,12 @@ def parse_log(file_path: str) -> Dict:
     duration = round(last_time - start_time, 2) if (start_time is not None and last_time is not None) else 0.0
     data["flight_time_sec"] = duration
 
+    # Segment GPS bad windows into intervals.
+    # Make times relative to flight start so the UI's [0, duration] timeline can plot them
+    # regardless of whether the log used TimeUS-since-boot or wall-clock _timestamp.
     anomalies: List[Dict] = []
-    if gps_bad_times:
-        gps_bad_times.sort()
-        GAP = 3.0  
-    # Duration
-    duration = round(last_time - start_time, 2) if (start_time is not None and last_time is not None) else 0.0
-    data["flight_time_sec"] = duration
-
-    # Segment GPS bad windows into intervals
-    anomalies: List[Dict] = []
-    if gps_bad_times:
-        gps_bad_times.sort()
+    if gps_bad_times and start_time is not None:
+        gps_bad_times = sorted(t - start_time for t in gps_bad_times)
         GAP = 3.0  # seconds — split if gaps are larger than this
         seg_start = gps_bad_times[0]
         prev = gps_bad_times[0]
@@ -101,9 +94,6 @@ def parse_log(file_path: str) -> Dict:
                 anomalies.append({ "t": round(prev, 2),      "type": "gps_recovered" })
                 seg_start = t
             prev = t
-        anomalies.append({ "t": round(seg_start, 2), "type": "gps_dropout" })
-        anomalies.append({ "t": round(prev, 2),      "type": "gps_recovered" })
-
         # close final segment
         anomalies.append({ "t": round(seg_start, 2), "type": "gps_dropout" })
         anomalies.append({ "t": round(prev, 2),      "type": "gps_recovered" })

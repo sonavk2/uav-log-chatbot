@@ -2,7 +2,7 @@ from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from parser import parse_log
-from llm_utils import ask_llm
+from llm_utils import ask_llm, index_session
 import shutil, os, math
 
 UPLOAD_DIR = "uploaded_logs"
@@ -42,6 +42,7 @@ async def upload_log(file: UploadFile = File(...)):
 
     parsed = parse_log(file_location)
     telemetry_cache[file.filename] = parsed
+    index_session(file.filename, parsed)
 
     return {
         "message": "File parsed successfully",
